@@ -90,6 +90,12 @@
     drawCourses(data.courses);
     drawUserLocation(data.userLocation);
 
+    // 단일 탭 — 코스 만들기 앵커 추가용
+    kakao.maps.event.addListener(mapInstance, 'click', function(e) {
+      const ll = e.latLng;
+      post({ type: 'tap', lng: ll.getLng(), lat: ll.getLat() });
+    });
+
     // long-press (모바일) — 500ms touchstart 유지
     let lpTimer = null, lpStart = null;
     const mapDiv = document.getElementById('map');
