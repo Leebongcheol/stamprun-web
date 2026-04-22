@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src *; img-src * data: blob:; style-src * 'unsafe-inline';"/> 
 <style> html,body,#map { margin:0; padding:0; height:100%; } </style>
 </head>
 <body>
@@ -14,21 +13,6 @@
   //   window.KAKAO_JS_KEY = "..."
   const post = (obj) => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(obj));
   window.onerror = (message, source, lineno) => post({ type: 'error', message: String(message), source: String(source||''), lineno });
-  post({ type: 'log', message: 'origin=' + location.origin + ' href=' + location.href.slice(0, 80) });
-  const _keyWait = setInterval(() => {
-    if (!window.KAKAO_JS_KEY) return;
-    clearInterval(_keyWait);
-const url = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + window.KAKAO_JS_KEY + '&autoload=false';
-    // CORS 모드: 응답 헤더 못 읽으면 throw (Kakao 는 CORS * 안 줌)
-    fetch(url).then(r => post({ type: 'log', message: 'cors fetch status=' + r.status })).catch(e => post({ type: 'log', message: 'cors fetch THROW ' + e.message }));
-    // no-cors 모드: opaque response 라도 status 0 으로 받음 → 네트워크 도달 확인 가능
-    fetch(url, { mode: 'no-cors' }).then(r => post({ type: 'log', message: 'no-cors fetch type=' + r.type + ' status=' + r.status })).catch(e => post({ type: 'log', message: 'no-cors fetch THROW ' + e.message }));
-    // 실제 script 태그처럼 image 로드 시도 — 200 성공 vs 4xx 실패 구분
-    const img = new Image();
-    img.onload = () => post({ type: 'log', message: 'img probe LOAD (200)' });
-    img.onerror = () => post({ type: 'log', message: 'img probe ERROR (4xx/5xx/network)' });
-    img.src = url + '&_probe=img';   
-  }, 50);
 
   function loadKakaoSdk(cb) {
     const s = document.createElement('script');
