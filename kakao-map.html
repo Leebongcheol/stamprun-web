@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<style> html,body,#map { margin:0; padding:0; height:100%; } </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+  // RN 이 injectedJavaScript 로 주입:
+  //   window.MAP_DATA = { center, level, courses, userLocation }
+  //   window.KAKAO_JS_KEY = "..."
+  const post = (obj) => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(obj));
+  window.onerror = (message, source, lineno) => post({ type: 'error', message: String(message), source: String(source||''), lineno });
+
+  function loadKakaoSdk(cb) {
+    const s = document.createElement('script');
+    s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + window.KAKAO_JS_KEY + '&autoload=false';
+    s.onload = () => { kakao.maps.load(cb); };
+    s.onerror = () => post({ type: 'error', message: 'kakao sdk script onerror', source: s.src, lineno: 0 });
+    document.head.appendChild(s);
+  }
+
+  function initMap() {
+    const data = window.MAP_DATA || {};
+    const c = data.center || { lat: 37.566, lng: 126.9784 };
+    const center = new kakao.maps.LatLng(c.lat, c.lng);
+    const map = new kakao.maps.Map(document.getElementById('map'), { center, level: data.level || 6 });
+
+    // 코스 폴리라인 + 클릭
+    (data.courses || []).forEach((c) => {
+      const path = c.coordinates.map(([lng, lat]) => new kakao.maps.LatLng(lat, lng));
+      const line = new kakao.maps.Polyline({
+        path,
+        strokeWeight: 5,
+        strokeColor: c.color || '#2563EB',
+        strokeOpacity: 0.85,
+        strokeStyle: 'solid',
+      });
+      line.setMap(map);
+      kakao.maps.event.addListener(line, 'click', () => post({ type: 'coursepress', courseId: c.id }));
+
+      if (path.length > 0) {
+        const marker = new kakao.maps.CustomOverlay({
+          position: path[0],
+          content: '<div style="background:'+ (c.color||'#2563EB') +';color:#fff;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;">' + c.name + '</div>',
+          yAnchor: 1.4,
+        });
+        marker.setMap(map);
+      }
+    });
+
+    // 내 위치
+    const userLoc = data.userLocation;
+    if (userLoc) {
+      const userMarker = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(userLoc.lat, userLoc.lng),
+        content: '<div style="width:16px;height:16px;border-radius:8px;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.6);"></div>',
+        yAnchor: 0.5, xAnchor: 0.5,
+      });
+      userMarker.setMap(map);
+    }
+
+    // long-press (모바일) — 500ms touchstart 유지
+    let lpTimer = null, lpStart = null;
+    const mapDiv = document.getElementById('map');
+    mapDiv.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      lpStart = { x: touch.clientX, y: touch.clientY };
+      lpTimer = setTimeout(() => {
+        const proj = map.getProjection();
+        const rect = mapDiv.getBoundingClientRect();
+        const point = new kakao.maps.Point(lpStart.x - rect.left, lpStart.y - rect.top);
+        const latLng = proj.coordsFromContainerPoint(point);
+        post({ type: 'longpress', lng: latLng.getLng(), lat: latLng.getLat() });
+        lpTimer = null;
+      }, 500);
+    });
+    mapDiv.addEventListener('touchmove', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+    mapDiv.addEventListener('touchend', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+  }
+
+  // injectedJavaScriptBeforeContentLoaded 는 Android 에서 inline script 보다
+  // 늦게 실행될 수 있으므로 데이터 도착을 폴링 (최대 5초).
+  function waitForData(cb, tries) {
+    if (window.KAKAO_JS_KEY) return cb();
+    if (tries <= 0) {
+      post({ type: 'error', message: 'KAKAO_JS_KEY not injected (timeout)', source: 'init', lineno: 0 });
+      return;
+    }
+    setTimeout(() => waitForData(cb, tries - 1), 50);
+  }
+  waitForData(() => loadKakaoSdk(initMap), 100);
+</script>
+</body>
+</html>
