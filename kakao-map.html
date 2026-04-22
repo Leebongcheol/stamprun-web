@@ -13,6 +13,14 @@
   //   window.KAKAO_JS_KEY = "..."
   const post = (obj) => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(obj));
   window.onerror = (message, source, lineno) => post({ type: 'error', message: String(message), source: String(source||''), lineno });
+  post({ type: 'log', message: 'origin=' + location.origin + ' href=' + location.href.slice(0, 80) });
+  const _keyWait = setInterval(() => {
+    if (!window.KAKAO_JS_KEY) return;
+    clearInterval(_keyWait);
+    fetch('https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + window.KAKAO_JS_KEY + '&autoload=false')
+      .then(r => r.text().then(t => post({ type: 'log', message: 'sdk fetch status=' + r.status + ' len=' + t.length + ' head=' + t.slice(0, 200).replace(/\s+/g, ' ') })))
+      .catch(e => post({ type: 'log', message: 'sdk fetch THROW ' + e.message }));
+  }, 50);
 
   function loadKakaoSdk(cb) {
     const s = document.createElement('script');
