@@ -60,18 +60,34 @@
     });
   }
 
+  let FOLLOW_USER = false;
+
   function drawUser(userLocation) {
     if (USER_OVERLAY) { USER_OVERLAY.setMap(null); USER_OVERLAY = null; }
     if (!userLocation) return;
+    const latLng = new kakao.maps.LatLng(userLocation.lat, userLocation.lng);
     USER_OVERLAY = new kakao.maps.CustomOverlay({
-      position: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+      position: latLng,
       content: '<div style="width:16px;height:16px;border-radius:8px;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.6);"></div>',
       yAnchor: 0.5, xAnchor: 0.5,
     });
     USER_OVERLAY.setMap(MAP);
+    // 사용자 위치 추적 모드 + 사용자 인터랙션 없을 때만 카메라 panTo
+    if (FOLLOW_USER && !userInteracted) {
+      MAP.panTo(latLng);
+    }
   }
 
   // 코스 폴리라인 전체가 화면에 들어오도록 카메라 자동 fit
+  // 사용자가 지도 인터랙션 시작하면 자동 fit 중지 (사용자 zoom/pan 존중)
+  let userInteracted = false;
+  let lastCourseSignature = null;
+
+  function courseSignature(courses) {
+    // 코스 id 들의 변경 감지 — 같은 코스 갱신 시엔 fit 다시 안 함
+    return (courses || []).map((c) => c.id).sort().join(",");
+  }
+
   function fitToCourses(courses) {
     if (!courses || courses.length === 0) return;
     const bounds = new kakao.maps.LatLngBounds();
@@ -88,12 +104,30 @@
   // RN 측에서 코스/사용자 위치 갱신할 때 호출
   window.updateMapData = function(data) {
     if (!MAP) return;
+    if (data.followUser !== undefined) FOLLOW_USER = !!data.followUser;
     if (data.courses) {
       drawCourses(data.courses);
-      // 새 코스가 선택되면 카메라 자동 fit
-      if (data.courses.length > 0) fitToCourses(data.courses);
+      // 코스 ID 자체가 바뀌었을 때만 카메라 fit. 같은 코스 동적 업데이트 (trace) 는 사용자 zoom 보존
+      const sig = courseSignature(data.courses);
+      if (data.courses.length > 0 && sig !== lastCourseSignature && !userInteracted && !FOLLOW_USER) {
+        fitToCourses(data.courses);
+      }
+      lastCourseSignature = sig;
     }
     if (data.userLocation !== undefined) drawUser(data.userLocation);
+  };
+
+  // 사용자 인터랙션 (zoom, pan) 감지 시 자동 fit 비활성
+  function attachInteractionGuard() {
+    if (!MAP) return;
+    kakao.maps.event.addListener(MAP, 'zoom_changed', () => { userInteracted = true; });
+    kakao.maps.event.addListener(MAP, 'dragend', () => { userInteracted = true; });
+  }
+
+  // 명시 리셋 (RN 측에서 "fit again" 요청 시)
+  window.resetUserInteraction = function() {
+    userInteracted = false;
+    lastCourseSignature = null;
   };
 
   function initMap() {
@@ -101,11 +135,16 @@
     const c = data.center || { lat: 37.566, lng: 126.9784 };
     const center = new kakao.maps.LatLng(c.lat, c.lng);
     MAP = new kakao.maps.Map(document.getElementById('map'), { center, level: data.level || 6 });
+    if (data.followUser) FOLLOW_USER = true;
 
     drawCourses(data.courses || []);
     drawUser(data.userLocation);
     // 초기에도 코스 있으면 자동 fit
-    if ((data.courses || []).length > 0) fitToCourses(data.courses);
+    if ((data.courses || []).length > 0) {
+      fitToCourses(data.courses);
+      lastCourseSignature = courseSignature(data.courses);
+    }
+    attachInteractionGuard();
 
     // long-press (모바일) — 500ms touchstart 유지
     let lpTimer = null, lpStart = null;
