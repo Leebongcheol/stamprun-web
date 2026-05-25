@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stamp Run · 코스 도전하기</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #2563EB; color: #fff;
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex; align-items: center; justify-content: center; }
+    .box { text-align: center; padding: 24px; }
+    h1 { font-size: 22px; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.5px; }
+    p  { font-size: 14px; opacity: 0.9; margin: 6px 0; }
+    .small { font-size: 12px; opacity: 0.7; margin-top: 24px; }
+    .button { display: inline-block; margin-top: 16px; background: #fff; color: #2563EB;
+      padding: 10px 18px; border-radius: 10px; font-weight: 800; text-decoration: none; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>🏃 Stamp Run 으로 이동 중...</h1>
+    <p>앱이 설치되어 있으면 바로 열립니다.</p>
+    <p>설치 안 되어 있으면 자동으로 스토어로 안내됩니다.</p>
+    <a id="storeLink" class="button" href="#">스토어 열기</a>
+    <p class="small">5초 후에도 이 화면이라면 위 버튼을 탭하세요.</p>
+  </div>
+  <script>
+  (function () {
+    const path = location.pathname.split('/').filter(Boolean);
+    // 예상 경로: /stamprun-web/course/<id> → courseId = 마지막 segment
+    const courseId = path[path.length - 1] || '';
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isAndroid = /Android/.test(ua);
+
+    const STORE_IOS     = "https://apps.apple.com/kr/app/stamp-run/id6772842094";
+    const STORE_ANDROID = "https://play.google.com/store/apps/details?id=com.stamprun.app";
+    const FALLBACK      = "https://leebongcheol.github.io/stamprun-web/";
+
+    const storeUrl = isIOS ? STORE_IOS : isAndroid ? STORE_ANDROID : FALLBACK;
+    document.getElementById('storeLink').href = storeUrl;
+
+    if (isIOS || isAndroid) {
+      // 앱 scheme 시도 — 앱 설치되어 있으면 RN expo-router 가 /course/:courseId 라우팅
+      const start = Date.now();
+      location.href = "stamprun://course/" + courseId;
+
+      // 1.7초 후에도 이 페이지가 살아있으면 = 앱 미설치 → 스토어로
+      setTimeout(function () {
+        // visibility 가 hidden 이면 앱이 열려서 백그라운드 → 리다이렉트 X
+        if (document.hidden) return;
+        if (Date.now() - start < 1500) return;
+        location.href = storeUrl;
+      }, 1800);
+    } else {
+      // 데스크탑 등 — 메인 페이지로
+      setTimeout(function () { location.href = FALLBACK; }, 2000);
+    }
+  })();
+  </script>
+</body>
+</html>
