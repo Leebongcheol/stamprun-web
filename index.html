@@ -1,22 +1,210 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Stamp Run</title>
+<title>Stamp Run — 서울 러닝 코스 공유 & 도전 앱</title>
+<meta name="description" content="Stamp Run 은 러너들이 직접 만든 러닝 코스를 공유하고, 도전하고, 기록을 겨루는 소셜 러닝 앱입니다."/>
 <style>
-  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #2563EB; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
-  .wrap { padding: 24px; max-width: 420px; }
-  .logo { font-size: 36px; font-weight: 800; letter-spacing: -0.5px; }
-  .tag { font-size: 14px; opacity: 0.8; margin-top: 12px; line-height: 1.5; }
-  .cta { margin-top: 32px; display: inline-block; background: #D9F500; color: #0F172A; padding: 12px 24px; border-radius: 999px; font-weight: 800; text-decoration: none; font-size: 14px; }
+  :root {
+    --blue: #2563EB; --blue-dark: #1D4ED8; --blue-bg: #DBEAFE;
+    --ink: #0F172A; --gray: #64748B; --line: #E2E8F0; --bg: #F8FAFC;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", Pretendard, sans-serif; color: var(--ink); background: #fff; line-height: 1.6; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* Hero */
+  header.hero { background: linear-gradient(160deg, #2563EB 0%, #1D4ED8 100%); color: #fff; padding: 72px 0 64px; text-align: center; }
+  .hero .logo { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
+  .hero .kicker { display: inline-block; margin-bottom: 14px; font-size: 12px; font-weight: 800; letter-spacing: 1px; background: rgba(255,255,255,.15); padding: 6px 14px; border-radius: 999px; }
+  .hero .tag { font-size: 17px; opacity: .95; margin-top: 16px; }
+  .hero .sub { font-size: 14px; opacity: .8; margin-top: 8px; }
+
+  /* Intro */
+  section { padding: 56px 0; }
+  section.alt { background: var(--bg); }
+  h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  h2 .dot { color: var(--blue); }
+  .lead { font-size: 16px; color: var(--gray); margin-top: 14px; max-width: 680px; }
+
+  /* Feature rows */
+  .feature { display: flex; align-items: center; gap: 40px; margin-top: 48px; }
+  .feature:nth-child(even) { flex-direction: row-reverse; }
+  .feature .text { flex: 1; }
+  .feature .shot { flex: none; width: 240px; }
+  .feature .shot img { width: 100%; border-radius: 24px; box-shadow: 0 12px 40px rgba(15,23,42,.16); border: 1px solid var(--line); display: block; }
+  .feature .num { display: inline-block; font-size: 12px; font-weight: 800; color: var(--blue); background: var(--blue-bg); padding: 4px 12px; border-radius: 999px; }
+  .feature h3 { font-size: 20px; font-weight: 800; margin: 12px 0 8px; }
+  .feature p { font-size: 15px; color: var(--gray); }
+  .feature ul { margin: 12px 0 0 0; padding-left: 18px; color: var(--gray); font-size: 14px; }
+  .feature li { margin: 4px 0; }
+
+  /* Login */
+  .login-card { margin-top: 28px; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
+  .login-card h3 { font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+  .login-card p { color: var(--gray); font-size: 15px; }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .badge { font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line); }
+  .badge.kakao { background: #FEE500; color: #191919; border-color: #FEE500; }
+  .badge.naver { background: #03C75A; color: #fff; border-color: #03C75A; }
+  .badge.apple { background: #0F172A; color: #fff; border-color: #0F172A; }
+  .badge.email { background: #fff; color: var(--ink); }
+  .note { margin-top: 18px; font-size: 13px; color: var(--gray); background: var(--blue-bg); border-radius: 12px; padding: 14px 16px; }
+  .note b { color: var(--blue-dark); }
+
+  /* Company */
+  .company { display: grid; grid-template-columns: 140px 1fr; gap: 8px 20px; margin-top: 22px; font-size: 14px; }
+  .company dt { color: var(--gray); font-weight: 700; }
+  .company dd { color: var(--ink); }
+  .links { margin-top: 24px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .links a { color: var(--blue); font-weight: 700; font-size: 14px; text-decoration: none; }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0; text-align: center; color: var(--gray); font-size: 13px; }
+
+  @media (max-width: 720px) {
+    .feature, .feature:nth-child(even) { flex-direction: column; gap: 24px; }
+    .feature .shot { width: 200px; }
+    .company { grid-template-columns: 1fr; gap: 2px; }
+    .company dt { margin-top: 10px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="logo">🏃 Stamp Run</div>
-  <div class="tag">서울의 숨겨진 코스를 달리며<br/>특별한 스탬프를 수집하세요</div>
-  <a class="cta" href="#">곧 앱스토어 출시</a>
-</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">SEOUL RUNNING · UGC</div>
+    <div class="logo">🏃 Stamp Run</div>
+    <div class="tag">러너가 직접 만든 러닝 코스를 공유하고, 도전하고, 기록을 겨루는 소셜 러닝 앱</div>
+    <div class="sub">iOS · Android · 출시 준비 중</div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Stamp Run <span class="dot">은 이런 서비스예요</span></h2>
+    <p class="lead">
+      Stamp Run 은 사용자가 직접 등록한 러닝 코스를 지도에서 찾아 달리고, GPS 로 완주를 인증하면
+      코스별 "스탬프"를 모을 수 있는 러닝 커뮤니티 앱입니다. 같은 코스를 달린 러너들과 기록을 겨루고,
+      친구를 팔로우하며 서로의 러닝을 응원합니다. 서울의 한강·공원 코스를 중심으로 운영되는
+      건강·스포츠(러닝) 분야 서비스입니다.
+    </p>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <h2>주요 기능<span class="dot">.</span></h2>
+
+    <div class="feature">
+      <div class="shot"><img src="shots/map.png" alt="코스 지도 화면"/></div>
+      <div class="text">
+        <span class="num">01 · 코스 지도 & 도전</span>
+        <h3>내 주변 러닝 코스를 찾아 도전</h3>
+        <p>지도에서 반경 내 인기 코스를 탐색하고, 코스 시작점에 도착하면 도전을 시작합니다.
+           GPS 경로 유사도가 일정 기준 이상이면 완주로 인증됩니다.</p>
+        <ul>
+          <li>반경·팔로잉·내 코스 필터</li>
+          <li>코스 상세: 난이도·평균 페이스·사람들의 기록 랭킹</li>
+          <li>실시간 GPS 추적 + 구간별 페이스</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="shot"><img src="shots/feed.png" alt="팔로잉 피드 화면"/></div>
+      <div class="text">
+        <span class="num">02 · 팔로잉 피드 & 응원</span>
+        <h3>친구의 러닝을 보고 도장으로 응원</h3>
+        <p>팔로우한 러너들의 완주 기록이 피드에 모입니다. 마음에 드는 기록에 "도장"을 찍어
+           응원하고, 함께 코스를 달리도록 자극을 주고받습니다.</p>
+        <ul>
+          <li>팔로우 / 팔로잉 · 러너 검색</li>
+          <li>기록 도장(좋아요) · 코스 댓글(팁·주의사항)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="shot"><img src="shots/badge.png" alt="스탬프 도감 화면"/></div>
+      <div class="text">
+        <span class="num">03 · 스탬프 도감 & 스탬프왕</span>
+        <h3>완주할수록 채워지는 나만의 도감</h3>
+        <p>코스를 완주하면 해당 코스의 스탬프를 획득합니다. 각 코스 1위는 골드 스탬프를 가지며,
+           매달 골드 수를 집계해 "스탬프왕"을 선정합니다.</p>
+        <ul>
+          <li>코스 스탬프 컬렉션 · 자치구/시·도 정복 현황</li>
+          <li>월간 스탬프왕 랭킹</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="shot"><img src="shots/profile.png" alt="프로필 화면"/></div>
+      <div class="text">
+        <span class="num">04 · 프로필 & 코스 등록</span>
+        <h3>내 러닝 활동과 직접 만든 코스 관리</h3>
+        <p>총 러닝 수·거리·스탬프를 한눈에 보고, GPS 기록 또는 지도에서 직접 코스를 만들어
+           다른 러너들과 공유할 수 있습니다(UGC).</p>
+        <ul>
+          <li>내 기록 · 내가 만든 코스 · 팔로잉 관리</li>
+          <li>GPS 기록 / 지도 그리기로 코스 등록</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>간편 로그인<span class="dot">.</span></h2>
+    <p class="lead">처음 앱을 켜면 아래 로그인 화면이 나타납니다. 소셜 로그인 또는 이메일로 가입할 수 있습니다.</p>
+
+    <div style="display:flex; gap:40px; align-items:center; margin-top:28px; flex-wrap:wrap;">
+      <div style="width:240px; flex:none;">
+        <img src="shots/login.png" alt="로그인 화면" style="width:100%; border-radius:24px; box-shadow:0 12px 40px rgba(15,23,42,.16); border:1px solid var(--line); display:block;"/>
+      </div>
+      <div class="login-card" style="flex:1; min-width:280px;">
+        <h3>로그인 / 회원가입 방식</h3>
+        <p>이용자는 아래 방식 중 하나로 1초 만에 가입·로그인할 수 있습니다.</p>
+        <div class="badges">
+          <span class="badge kakao">카카오</span>
+          <span class="badge naver">네이버</span>
+          <span class="badge apple">Apple</span>
+          <span class="badge email">이메일</span>
+        </div>
+        <div class="note">
+          <b>네이버 로그인으로 수집하는 정보</b><br/>
+          계정 식별 및 프로필 표시를 위해 <b>닉네임</b>과 <b>프로필 사진</b>만 사용합니다.
+          이메일 등 추가 정보는 수집하지 않으며, 별도의 동의 항목 없이도 가입이 완료됩니다.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <h2>운영 회사<span class="dot">.</span></h2>
+    <dl class="company">
+      <dt>상호</dt><dd>오로라스튜디오 (Aurora Studio)</dd>
+      <dt>대표자</dt><dd>이봉철 (Bongcheol Lee)</dd>
+      <dt>사업자등록번호</dt><dd>432-70-00758</dd>
+      <dt>사업장 주소</dt><dd>서울특별시 강서구 방화대로 309-15, 804호 (방화동, 보타닉타워)</dd>
+      <dt>문의 이메일</dt><dd>aurorastudio26@naver.com</dd>
+      <dt>서비스 분야</dt><dd>건강·스포츠(러닝) / 소셜 커뮤니티</dd>
+    </dl>
+    <div class="links">
+      <a href="terms.html">이용약관</a>
+      <a href="privacy.html">개인정보 처리방침</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © 2026 Aurora Studio · Stamp Run
+</footer>
+
 </body>
 </html>
