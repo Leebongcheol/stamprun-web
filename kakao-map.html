@@ -61,11 +61,13 @@
   }
 
   let FOLLOW_USER = false;
+  let LAST_USER = null;  // 최근 사용자 위치 latLng — "현재 위치로 이동" 버튼용
 
   function drawUser(userLocation) {
     if (USER_OVERLAY) { USER_OVERLAY.setMap(null); USER_OVERLAY = null; }
     if (!userLocation) return;
     const latLng = new kakao.maps.LatLng(userLocation.lat, userLocation.lng);
+    LAST_USER = latLng;
     USER_OVERLAY = new kakao.maps.CustomOverlay({
       position: latLng,
       content: '<div style="width:16px;height:16px;border-radius:8px;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.6);"></div>',
@@ -137,6 +139,14 @@
   window.resetUserInteraction = function() {
     userInteracted = false;
     lastCourseSignature = null;
+  };
+
+  // "현재 위치로 이동" — RN 버튼에서 호출. 즉시 사용자 위치로 재중심 + follow 재개.
+  window.recenterToUser = function() {
+    if (!MAP || !LAST_USER) return;
+    userInteracted = false;
+    if (reFollowTimer) { clearTimeout(reFollowTimer); reFollowTimer = null; }
+    MAP.panTo(LAST_USER);
   };
 
   function initMap() {
