@@ -117,11 +117,20 @@
     if (data.userLocation !== undefined) drawUser(data.userLocation);
   };
 
-  // 사용자 인터랙션 (zoom, pan) 감지 시 자동 fit 비활성
+  // 사용자 인터랙션 (zoom, pan) 감지 시 자동 fit 비활성.
+  // FOLLOW_USER (러닝/코스기록 추적) 모드에서는 네비게이션처럼 idle 후 다시 따라가기 재무장.
+  let reFollowTimer = null;
+  const FOLLOW_REARM_MS = 4500;
+  function onUserInteract() {
+    userInteracted = true;
+    if (!FOLLOW_USER) return;  // 일반 지도는 영구 latch (사용자 zoom/pan 존중)
+    if (reFollowTimer) clearTimeout(reFollowTimer);
+    reFollowTimer = setTimeout(() => { userInteracted = false; }, FOLLOW_REARM_MS);
+  }
   function attachInteractionGuard() {
     if (!MAP) return;
-    kakao.maps.event.addListener(MAP, 'zoom_changed', () => { userInteracted = true; });
-    kakao.maps.event.addListener(MAP, 'dragend', () => { userInteracted = true; });
+    kakao.maps.event.addListener(MAP, 'zoom_changed', onUserInteract);
+    kakao.maps.event.addListener(MAP, 'dragend', onUserInteract);
   }
 
   // 명시 리셋 (RN 측에서 "fit again" 요청 시)
