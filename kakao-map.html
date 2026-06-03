@@ -167,13 +167,8 @@
       lastCourseSignature = courseSignature(data.courses);
     }
     attachInteractionGuard();
-
-    // 단일 탭 — '지도에서 그리기' 모드 앵커 추가용. RN onTap 핸들러가 받는다.
-    // (follow/recenter 도입 때 누락돼 지도 그리기 탭이 무반응이던 문제 복원)
-    kakao.maps.event.addListener(MAP, 'click', function(e) {
-      const ll = e.latLng;
-      post({ type: 'tap', lng: ll.getLng(), lat: ll.getLat() });
-    });
+    // 단일 탭은 아래 touchend 에서 터치 기반으로 직접 발신한다 (Kakao 'click' 이 iOS 터치에서
+    // 비신뢰라 무반응이던 문제 — 'click' 리스너 의존 제거, 중복 발신 방지).
 
     // 맵 준비 전 도착했던 업데이트(코스 선택 등) 반영 — #5 폴리라인 끊김 방지
     if (PENDING_DATA) {
@@ -199,7 +194,20 @@
       }, 500);
     });
     mapDiv.addEventListener('touchmove', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
-    mapDiv.addEventListener('touchend', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+    mapDiv.addEventListener('touchend', () => {
+      // lpTimer 가 아직 살아있으면 = 500ms 미만 + 이동 없음 → 단일 탭. 터치 기반으로 직접 발신.
+      if (lpTimer && lpStart && MAP) {
+        clearTimeout(lpTimer); lpTimer = null;
+        const proj = MAP.getProjection();
+        const rect = mapDiv.getBoundingClientRect();
+        const point = new kakao.maps.Point(lpStart.x - rect.left, lpStart.y - rect.top);
+        const latLng = proj.coordsFromContainerPoint(point);
+        post({ type: 'tap', lng: latLng.getLng(), lat: latLng.getLat() });
+      } else if (lpTimer) {
+        clearTimeout(lpTimer); lpTimer = null;
+      }
+      lpStart = null;
+    });
   }
 
   // injectedJavaScriptBeforeContentLoaded 는 Android 에서 inline script 보다
