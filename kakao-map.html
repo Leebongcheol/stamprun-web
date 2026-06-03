@@ -18,6 +18,7 @@
   let MAP = null;
   let COURSE_OVERLAYS = []; // { line, marker } 배열 (코스 polyline + 라벨)
   let USER_OVERLAY = null;  // 내 위치 마커
+  let PENDING_DATA = null;  // 맵 init 전 도착한 updateMapData 인자 (레이스 방지 — 고구마 폴리라인 끊김 #5)
 
   function loadKakaoSdk(cb) {
     const s = document.createElement('script');
@@ -105,7 +106,9 @@
 
   // RN 측에서 코스/사용자 위치 갱신할 때 호출
   window.updateMapData = function(data) {
-    if (!MAP) return;
+    // 맵이 아직 초기화 전이면 최신 데이터를 보관했다가 initMap 끝에 1회 적용.
+    // (RN 이 SDK 로드 완료 전에 코스 선택을 주입하면 폴리라인이 통째로 누락되던 #5 원인)
+    if (!MAP) { PENDING_DATA = data; return; }
     if (data.followUser !== undefined) FOLLOW_USER = !!data.followUser;
     if (data.courses) {
       drawCourses(data.courses);
@@ -164,6 +167,13 @@
       lastCourseSignature = courseSignature(data.courses);
     }
     attachInteractionGuard();
+
+    // 맵 준비 전 도착했던 업데이트(코스 선택 등) 반영 — #5 폴리라인 끊김 방지
+    if (PENDING_DATA) {
+      const pending = PENDING_DATA;
+      PENDING_DATA = null;
+      window.updateMapData(pending);
+    }
 
     // long-press (모바일) — 500ms touchstart 유지
     let lpTimer = null, lpStart = null;
