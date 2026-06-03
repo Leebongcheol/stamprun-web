@@ -168,6 +168,13 @@
     }
     attachInteractionGuard();
 
+    // 단일 탭 — '지도에서 그리기' 모드 앵커 추가용. RN onTap 핸들러가 받는다.
+    // (follow/recenter 도입 때 누락돼 지도 그리기 탭이 무반응이던 문제 복원)
+    kakao.maps.event.addListener(MAP, 'click', function(e) {
+      const ll = e.latLng;
+      post({ type: 'tap', lng: ll.getLng(), lat: ll.getLat() });
+    });
+
     // 맵 준비 전 도착했던 업데이트(코스 선택 등) 반영 — #5 폴리라인 끊김 방지
     if (PENDING_DATA) {
       const pending = PENDING_DATA;
