@@ -112,12 +112,17 @@
     if (data.followUser !== undefined) FOLLOW_USER = !!data.followUser;
     if (data.courses) {
       drawCourses(data.courses);
-      // 코스 ID 자체가 바뀌었을 때만 카메라 fit. 같은 코스 동적 업데이트 (trace) 는 사용자 zoom 보존
+      // 코스 ID 가 바뀌면 (= RN 이 새 코스 선택을 주입) 명시적 의도 → 사용자 zoom/pan 여부와
+      // 무관하게 항상 재fit. (예전엔 !userInteracted 조건 때문에 첫 fit 의 setBounds 가
+      // zoom_changed 를 쏴 userInteracted 가 영구 latch 되고, 이후 다른 코스를 눌러도
+      // 카메라가 안 움직이던 버그가 있었다.) 같은 코스 동적 업데이트(trace) 일 때만 zoom 보존.
       const sig = courseSignature(data.courses);
-      if (data.courses.length > 0 && sig !== lastCourseSignature && !userInteracted && !FOLLOW_USER) {
+      const courseChanged = sig !== lastCourseSignature;
+      lastCourseSignature = sig;
+      if (data.courses.length > 0 && courseChanged && !FOLLOW_USER) {
+        userInteracted = false;
         fitToCourses(data.courses);
       }
-      lastCourseSignature = sig;
     }
     if (data.userLocation !== undefined) drawUser(data.userLocation);
   };
