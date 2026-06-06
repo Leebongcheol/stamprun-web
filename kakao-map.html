@@ -104,20 +104,6 @@
     if (any) MAP.setBounds(bounds);
   }
 
-  // 새 코스 선택 시, 카메라 이동(setBounds)이 끝나고 타일이 안정된 직후('idle')
-  // 폴리라인을 1회 재그린다. 맵 투영/타일이 준비되기 전 setMap 으로 그려져 긴 코스(고구마 등)에서
-  // 폴리라인 일부가 덜 칠해져 "끊겨 보이던" 간헐 현상 방지. (PENDING_DATA 는 SDK 미로드만 막음)
-  let repaintHandler = null;
-  function repaintOnIdle(courses) {
-    if (repaintHandler) { kakao.maps.event.removeListener(MAP, 'idle', repaintHandler); repaintHandler = null; }
-    repaintHandler = function() {
-      kakao.maps.event.removeListener(MAP, 'idle', repaintHandler);
-      repaintHandler = null;
-      drawCourses(courses);  // 안정된 타일 위에 재그림 (재그리기는 카메라를 움직이지 않음 → 재귀 idle 없음)
-    };
-    kakao.maps.event.addListener(MAP, 'idle', repaintHandler);
-  }
-
   // RN 측에서 코스/사용자 위치 갱신할 때 호출
   window.updateMapData = function(data) {
     // 맵이 아직 초기화 전이면 최신 데이터를 보관했다가 initMap 끝에 1회 적용.
@@ -136,7 +122,6 @@
       if (data.courses.length > 0 && courseChanged && !FOLLOW_USER) {
         userInteracted = false;
         fitToCourses(data.courses);
-        repaintOnIdle(data.courses);
       }
     }
     if (data.userLocation !== undefined) drawUser(data.userLocation);
