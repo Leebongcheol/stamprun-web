@@ -172,6 +172,16 @@
       lastCourseSignature = courseSignature(data.courses);
     }
     attachInteractionGuard();
+
+    // 지도 타일이 실제로 다 그려질 때마다 RN 에 'mapready' 통지.
+    // 완주 인증카드의 오프스크린 지도 캡처가 "고정 3초 대기" 대신 이 신호를 기다렸다가
+    // 캡처하도록 하기 위함 (야외 셀룰러 등 느린 망에서 3초 안에 타일이 안 그려져
+    // 배경 지도가 통째로 누락되던 문제). setBounds(fitToCourses) 후의 재로딩도 포함해
+    // 매 타일로드마다 발신 — RN 측이 디바운스해 마지막(프레이밍 완료) 상태를 캡처한다.
+    kakao.maps.event.addListener(MAP, 'tilesloaded', function() {
+      post({ type: 'mapready' });
+    });
+
     // 단일 탭은 아래 touchend 에서 터치 기반으로 직접 발신한다 (Kakao 'click' 이 iOS 터치에서
     // 비신뢰라 무반응이던 문제 — 'click' 리스너 의존 제거, 중복 발신 방지).
 
