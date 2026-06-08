@@ -28,36 +28,106 @@
     document.head.appendChild(s);
   }
 
+  // ── 방향 화살표 헬퍼 (진행 방향 표시 #1) ──────────────
+  function _haversineM(p, q) { // p,q = [lng,lat]
+    const R = 6371000, toRad = (x) => x * Math.PI / 180;
+    const dLat = toRad(q[1] - p[1]), dLng = toRad(q[0] - p[0]);
+    const h = Math.sin(dLat/2)**2 + Math.cos(toRad(p[1]))*Math.cos(toRad(q[1]))*Math.sin(dLng/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function _bearingDeg(p, q) { // CSS 회전(0=북/위, 시계방향). p,q=[lng,lat]
+    const latMid = (p[1] + q[1]) / 2 * Math.PI / 180;
+    const dLng = (q[0] - p[0]) * Math.cos(latMid);
+    const dLat = (q[1] - p[1]);
+    return Math.atan2(dLng, dLat) * 180 / Math.PI;
+  }
+  function _arrowPoints(coords, spacingM) { // 등간격 화살표 위치 [{lng,lat,deg}]
+    const out = [];
+    let target = spacingM * 0.5, acc = 0;
+    for (let i = 1; i < coords.length; i++) {
+      const segLen = _haversineM(coords[i-1], coords[i]);
+      if (segLen <= 0) continue;
+      const deg = _bearingDeg(coords[i-1], coords[i]);
+      while (acc + segLen >= target) {
+        const t = (target - acc) / segLen;
+        out.push({
+          lng: coords[i-1][0] + (coords[i][0] - coords[i-1][0]) * t,
+          lat: coords[i-1][1] + (coords[i][1] - coords[i-1][1]) * t,
+          deg,
+        });
+        target += spacingM;
+      }
+      acc += segLen;
+    }
+    return out;
+  }
+  const ARROW_SPACING_M = 300; // 성김 (CEO 선택)
+
   function drawCourses(courses) {
-    // 기존 overlay 제거
+    // 기존 overlay 제거 (line + label + 방향/시작·끝 extras)
     COURSE_OVERLAYS.forEach((o) => {
       if (o.line) o.line.setMap(null);
       if (o.marker) o.marker.setMap(null);
+      if (o.extras) o.extras.forEach((e) => e.setMap(null));
     });
     COURSE_OVERLAYS = [];
 
     (courses || []).forEach((c) => {
+      const color = c.color || '#2563EB';
       const path = c.coordinates.map(([lng, lat]) => new kakao.maps.LatLng(lat, lng));
       const line = new kakao.maps.Polyline({
         path,
         strokeWeight: 5,
-        strokeColor: c.color || '#2563EB',
+        strokeColor: color,
         strokeOpacity: 0.85,
         strokeStyle: 'solid',
       });
       line.setMap(MAP);
       kakao.maps.event.addListener(line, 'click', () => post({ type: 'coursepress', courseId: c.id }));
 
+      const extras = [];
       let marker = null;
-      if (path.length > 0) {
+
+      if (c.directional && c.coordinates.length >= 2) {
+        // 진행 방향 화살촉 (라인 화살촉, ~300m 간격)
+        _arrowPoints(c.coordinates, ARROW_SPACING_M).forEach((a) => {
+          const ov = new kakao.maps.CustomOverlay({
+            position: new kakao.maps.LatLng(a.lat, a.lng),
+            content: '<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid ' + color + ';transform:rotate(' + a.deg + 'deg);filter:drop-shadow(0 0 1px rgba(255,255,255,0.95));"></div>',
+            xAnchor: 0.5, yAnchor: 0.5,
+          });
+          ov.setMap(MAP);
+          extras.push(ov);
+        });
+        // 출발 / 도착 마커 (루프=시작≈끝 → 통합)
+        const co = c.coordinates;
+        const isLoop = co.length > 2 && _haversineM(co[0], co[co.length - 1]) < 50;
+        const startOv = new kakao.maps.CustomOverlay({
+          position: path[0],
+          content: '<div style="display:flex;flex-direction:column;align-items:center;"><div style="width:14px;height:14px;border-radius:7px;background:#16A34A;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.4);"></div><div style="margin-top:2px;background:#16A34A;color:#fff;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap;">' + (isLoop ? '출발·도착' : '출발') + '</div></div>',
+          yAnchor: 0.2, xAnchor: 0.5,
+        });
+        startOv.setMap(MAP);
+        extras.push(startOv);
+        if (!isLoop) {
+          const endOv = new kakao.maps.CustomOverlay({
+            position: path[path.length - 1],
+            content: '<div style="font-size:20px;filter:drop-shadow(0 0 2px #fff);">🏁</div>',
+            yAnchor: 1, xAnchor: 0.3,
+          });
+          endOv.setMap(MAP);
+          extras.push(endOv);
+        }
+      } else if (path.length > 0) {
+        // 비방향 코스(내 경로/도보 등) — 기존 이름 라벨
         marker = new kakao.maps.CustomOverlay({
           position: path[0],
-          content: '<div style="background:'+ (c.color||'#2563EB') +';color:#fff;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;">' + c.name + '</div>',
+          content: '<div style="background:' + color + ';color:#fff;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;">' + c.name + '</div>',
           yAnchor: 1.4,
         });
         marker.setMap(MAP);
       }
-      COURSE_OVERLAYS.push({ line, marker });
+      COURSE_OVERLAYS.push({ line, marker, extras });
     });
   }
 
@@ -69,9 +139,13 @@
     if (!userLocation) return;
     const latLng = new kakao.maps.LatLng(userLocation.lat, userLocation.lng);
     LAST_USER = latLng;
+    // 프로필 사진이 있으면 원형 사진 마커, 없으면 파란 점 (#3). 사진 로드 실패 시 점으로 폴백.
+    const content = userLocation.imageUrl
+      ? '<div style="width:38px;height:38px;border-radius:19px;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,0.45);overflow:hidden;background:#3B82F6;"><img src="' + userLocation.imageUrl + '" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.innerHTML=\'\';this.parentNode.style.cssText=\'width:16px;height:16px;border-radius:8px;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.6);\'"/></div>'
+      : '<div style="width:16px;height:16px;border-radius:8px;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.6);"></div>';
     USER_OVERLAY = new kakao.maps.CustomOverlay({
       position: latLng,
-      content: '<div style="width:16px;height:16px;border-radius:8px;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.6);"></div>',
+      content,
       yAnchor: 0.5, xAnchor: 0.5,
     });
     USER_OVERLAY.setMap(MAP);
