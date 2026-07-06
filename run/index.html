@@ -19,40 +19,90 @@
   <meta name="twitter:image"      content="https://leebongcheol.github.io/stamprun-web/og-image.png">
 
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #2563EB; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", Pretendard, sans-serif;
+      background: linear-gradient(160deg, #2563EB 0%, #1D4ED8 100%);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; color: #0F172A;
+    }
+    .card {
+      background: #fff; border-radius: 24px; padding: 36px 28px;
+      max-width: 360px; width: 100%; text-align: center;
+      box-shadow: 0 20px 60px rgba(15,23,42,.35);
+    }
+    .emoji { font-size: 56px; }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-top: 12px; }
+    p { font-size: 14px; color: #64748B; margin-top: 10px; line-height: 1.6; }
+    .btn {
+      display: block; margin-top: 20px; padding: 15px 20px; border-radius: 14px;
+      font-size: 15px; font-weight: 800; text-decoration: none;
+    }
+    .btn.ios { background: #0F172A; color: #fff; }
+    .btn.aos { background: #2563EB; color: #fff; }
+    .soon {
+      margin-top: 20px; padding: 14px 16px; border-radius: 14px;
+      background: #DBEAFE; color: #1D4ED8; font-size: 13px; font-weight: 700; line-height: 1.5;
+    }
+    .home { display: inline-block; margin-top: 18px; font-size: 12px; color: #94A3B8; text-decoration: none; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
+  <div class="card">
+    <div class="emoji">🏃</div>
+    <h1>Stamp Run</h1>
+    <p>우리 동네 러닝 코스에 도전하고<br>골드 스탬프를 모아보세요.</p>
+    <a id="btn-ios" class="btn ios hidden" href="https://apps.apple.com/kr/app/stamp-run/id6772842094"> App Store에서 받기</a>
+    <a id="btn-aos" class="btn aos hidden" href="https://play.google.com/store/apps/details?id=com.stamprun.app">Google Play에서 받기</a>
+    <div id="soon-aos" class="soon hidden">Android 버전은 Google Play 심사 중이에요.<br>곧 만나요! 🙌</div>
+    <a class="home" href="https://leebongcheol.github.io/stamprun-web/">Stamp Run 소개 보기 ›</a>
+  </div>
+
   <script>
   (function () {
-    const path = location.pathname.split('/').filter(Boolean);
-    const courseId = path[path.length - 1] || '';
-    const ua = navigator.userAgent;
-    const isIOS = /iPhone|iPad|iPod/.test(ua);
-    const isAndroid = /Android/.test(ua);
+    // ⚠️ Google Play 승인되면 이 플래그만 true 로 바꾸면 Android 도 자동 이동됩니다.
+    var ANDROID_LIVE = false;
 
-    const STORE_IOS     = "https://apps.apple.com/kr/app/stamp-run/id6772842094";
-    const STORE_ANDROID = "https://play.google.com/store/apps/details?id=com.stamprun.app";
-    const FALLBACK      = "https://leebongcheol.github.io/stamprun-web/";
+    var STORE_IOS = "https://apps.apple.com/kr/app/stamp-run/id6772842094";
+    var STORE_ANDROID = "https://play.google.com/store/apps/details?id=com.stamprun.app";
 
-    const storeUrl = isIOS ? STORE_IOS : isAndroid ? STORE_ANDROID : FALLBACK;
+    // 대상 id — /course/<id>, /run/<id> 경로 또는 ?id=<id> 쿼리 둘 다 지원
+    var segs = location.pathname.split("/").filter(Boolean);
+    var kind = segs.indexOf("run") >= 0 ? "run" : "course";
+    var last = segs[segs.length - 1] || "";
+    var id = new URLSearchParams(location.search).get("id")
+      || (last !== "course" && last !== "run" ? last : "");
 
-    if (isIOS || isAndroid) {
-      // 앱 scheme 시도 — iframe 으로 화면 깜빡임 없이 호출
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = "stamprun://course/" + courseId;
-      document.body.appendChild(iframe);
+    var ua = navigator.userAgent;
+    var isIOS = /iPhone|iPad|iPod/.test(ua);
+    var isAndroid = /Android/.test(ua);
 
-      // 짧은 시간 후에도 페이지 살아있으면 = 앱 미설치 → 스토어로
-      // (앱이 열리면 visibility hidden 이 됨)
+    function show(elId) { document.getElementById(elId).classList.remove("hidden"); }
+
+    if (isIOS || (isAndroid && ANDROID_LIVE)) {
+      // 앱 설치돼 있으면 딥링크로 열기 시도 (iframe — 화면 깜빡임 없음)
+      if (id) {
+        var iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = "stamprun://" + kind + "/" + id;
+        document.body.appendChild(iframe);
+      }
+      var storeUrl = isIOS ? STORE_IOS : STORE_ANDROID;
+      show(isIOS ? "btn-ios" : "btn-aos");
+      // 앱이 열리면 페이지가 hidden 됨 → 살아있으면 미설치 → 스토어로
       setTimeout(function () {
         if (document.hidden) return;
         location.href = storeUrl;
-      }, 500);
+      }, 600);
+    } else if (isAndroid) {
+      // Play 심사 중 — 죽은 링크 대신 안내
+      show("soon-aos");
     } else {
-      // 데스크탑/기타 — 메인 페이지
-      location.href = FALLBACK;
+      // 데스크톱 등 — 양쪽 안내 표시
+      show("btn-ios");
+      if (ANDROID_LIVE) show("btn-aos"); else show("soon-aos");
     }
   })();
   </script>
