@@ -81,21 +81,31 @@
 
     function show(elId) { document.getElementById(elId).classList.remove("hidden"); }
 
-    if (isIOS || (isAndroid && ANDROID_LIVE)) {
-      // 앱 설치돼 있으면 딥링크로 열기 시도 (iframe — 화면 깜빡임 없음)
+    if (isAndroid && ANDROID_LIVE) {
+      // Android: intent:// — 앱 설치 시 앱으로, 미설치 시 S.browser_fallback_url(Play)로 자동.
+      //   (구 hidden-iframe 커스텀스킴은 최신 Chrome 에서 차단돼 설치 유저도 스토어로 갔음)
+      show("btn-aos");
       if (id) {
-        var iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.src = "stamprun://" + kind + "/" + id;
-        document.body.appendChild(iframe);
+        location.href = "intent://" + kind + "/" + id +
+          "#Intent;scheme=stamprun;package=com.stamprun.app;" +
+          "S.browser_fallback_url=" + encodeURIComponent(STORE_ANDROID) + ";end";
+      } else {
+        location.href = STORE_ANDROID;
       }
-      var storeUrl = isIOS ? STORE_IOS : STORE_ANDROID;
-      show(isIOS ? "btn-ios" : "btn-aos");
-      // 앱이 열리면 페이지가 hidden 됨 → 살아있으면 미설치 → 스토어로
+    } else if (isIOS) {
+      // iOS: 커스텀 스킴으로 직접 이동 시도 → 앱이 열리면 페이지가 background 로 전환되고,
+      //   살아있으면(미설치) 스토어로. iframe 방식은 최신 Safari 에서 무동작이라 location 이동으로.
+      show("btn-ios");
+      var opened = false;
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) opened = true;
+      });
+      if (id) {
+        setTimeout(function () { location.href = "stamprun://" + kind + "/" + id; }, 50);
+      }
       setTimeout(function () {
-        if (document.hidden) return;
-        location.href = storeUrl;
-      }, 600);
+        if (!opened && !document.hidden) location.href = STORE_IOS;
+      }, 1200);
     } else if (isAndroid) {
       // Play 심사 중 — 죽은 링크 대신 안내
       show("soon-aos");
