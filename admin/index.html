@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Stamp Run 관리자</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+         background: #F8FAFC; color: #111827; display: flex; align-items: center; justify-content: center;
+         min-height: 100vh; margin: 0; }
+  .msg { text-align: center; color: #6B7280; font-size: 15px; padding: 24px; }
+  .msg b { color: #111827; }
+</style>
+</head>
+<body>
+<div class="msg" id="msg">📊 불러오는 중…</div>
+<script>
+// Stamp Run 관리자 대시보드 셸.
+// Supabase 게이트웨이가 *.supabase.co 의 HTML 응답을 text/plain + CSP sandbox 로
+// 강제 변환(피싱 방지)하므로, 여기서 fetch 로 받아 문서에 직접 주입한다.
+// key 는 URL 해시(#key=...) 사용 — 해시는 서버(GitHub Pages) 로그에 전송되지 않음.
+(function () {
+  var FN = "https://mgrjvyilrbmemvoqhmot.supabase.co/functions/v1/admin-dashboard";
+  var hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+  var qs = new URLSearchParams(location.search);
+  var key = hash.get("key") || qs.get("key");
+  var msg = document.getElementById("msg");
+  if (!key) { msg.innerHTML = "<b>접근 키가 없습니다.</b><br>주소 끝에 #key=… 가 포함된 URL 로 열어주세요."; return; }
+  fetch(FN + "?key=" + encodeURIComponent(key))
+    .then(function (r) {
+      if (r.status === 404) throw new Error("키가 올바르지 않습니다");
+      if (!r.ok) return r.text().then(function (t) { throw new Error(t || ("HTTP " + r.status)); });
+      return r.text();
+    })
+    .then(function (html) {
+      document.open();
+      document.write(html);
+      document.close();
+    })
+    .catch(function (e) {
+      msg.innerHTML = "<b>불러오기 실패</b><br>" + String(e.message || e).replace(/[<>]/g, "");
+    });
+})();
+</script>
+</body>
+</html>
